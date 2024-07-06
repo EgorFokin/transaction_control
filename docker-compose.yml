@@ -1,8 +1,14 @@
+networks:
+  app-tier:
+    driver: bridge
+
 services:
   kafka:
     image: 'bitnami/kafka:latest'
     ports:
       - '9092:9092'
+    networks:
+      - app-tier
     environment:
       - KAFKA_CFG_NODE_ID=0
       - KAFKA_CFG_PROCESS_ROLES=controller,broker
@@ -12,6 +18,8 @@ services:
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       
   init-topics:
+    networks:
+      - app-tier
     depends_on:
       kafka:
         condition: service_started
@@ -25,3 +33,10 @@ services:
       echo -e 'Successfully created the following topics:'
       kafka-topics.sh --bootstrap-server kafka:9092 --list
       "
+  event_production:
+    networks:
+      - app-tier
+    depends_on:
+      init-topics:
+        condition: service_completed_successfully
+    image: 'producer'
